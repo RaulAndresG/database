@@ -1,0 +1,156 @@
+hola necesito tu ayuda en una preuba de empresa echa conn node.js
+te proporsionare el contexto y todo lo q necesito 
+Contexto
+Galapp es una aplicación para recolección de datos de empresas agropecuarias.
+Unos de los principales cultivos con los que Galapp trabaja son el café y el cacao. A pesar que son
+cultivos totalmente diferentes, desde el punto de vista de captura de información, tienen modelos de
+datos similares.
+Una actividad en común es la cosecha. En ambos cultivos se suelen registrar datos de cosecha
+indicando cuándo se hizo, quién lo realizó y cuánto se recogió. En ambos casos, la cantidad
+recolectada se registra en Kilogramos.
+Sin embargo, hay otras actividades que son particulares para cada cultivo, como lo son la
+fermentación del cacao y el secado del café. Ambas actividades son de vital importancia para obtener
+productos de buena calidad y en ambos casos se lleva el control de la merma de producto.
+La merma del producto consiste en calcular el porcentaje de reducción del producto al finalizar el
+proceso. Por ejemplo, si ingresan 300 Kg de producto y al finalizar el proceso hay 285 Kg, la merma
+fue de 5%, que proviene de la siguiente fórmula: (cantidad_final - cantidad_inicial) / cantidad_inicial.
+Ahora bien, Galapp se utiliza por diferentes personas dentro de una misma organización. La usan los
+jornaleros para registrar sus actividades diarias, pero también el administrador de la finca para
+monitorear las actividades realizadas por sus trabajadores y para registrar datos de ventas o
+inventarios que solamente le competen a él.
+Por esta razón, el modelo de datos de Galapp cuenta con diferentes entidades para controlar el
+acceso a los datos de cada organización teniendo en cuenta los permisos de cada tipo de usuario
+sobre los datos.
+En el siguiente repositorio de Github hay una aplicación Express que simula una base de datos. Es
+una aplicación sencilla con unos datos precargados de usuarios, cuentas y formularios.
+https://github.com/galapagoagro/backend_developer_test
+Un usuario representa a las personas que utilizan la aplicación y tienen datos personales y un objeto
+con las cuentas a las que pertenecen. Cada una de estas cuentas especifica el rol que tiene el
+usuario en dicha cuenta.
+Una cuenta es un espacio donde se almacenan datos de un cliente. Para este ejercicio hay dos
+cuentas, una llamada Café y otra llamada Cacao. Ambas tienen un objeto con roles que indican qué
+formularios están habilitados en cada cuenta y los permisos de cada rol sobre dichos formularios.
+Un formulario es una representación de una tabla de base de datos o de un documento en una
+colección de datos. Cuenta con una lista de campos que tienen un identificador y un tipo. El
+identificador puede interpretarse como los nombres de las columnas en tablas de bases de datos.
+Este servidor de base de datos recibe el nombre de la entidad deseada como parte de la ruta. La
+aplicación busca un archivo que corresponda con la entidad solicitada y retorna un error 404 en caso
+que no exista
+
+ese es el contexto lo q esta en el repo yo lo tengo y es un data q te pasare y mi archivo de index en el q esta todo la funcionalidad y
+todo aca est mi index.js 
+ despues de este mensaje te enviare mi archivo de index.js y el requerimiento 
+
+
+
+
+
+const express = require('express');
+const fs = require('fs').promises;
+
+const app = express();
+const PORT = 20000;
+
+app.use(express.json());
+
+const DATA_FOLDER = 'data';
+
+/**
+ * Load data from JSON file
+ * @param {String} entity - Entity name
+ * @returns {Object} Object with data from JSON file
+ */
+const loadData = async (entity) => {
+  try {
+    const fileData = await fs.readFile(`${DATA_FOLDER}/${entity}.json`, 'utf8');
+    return JSON.parse(fileData);
+  } catch (err) {
+    console.error(`Error reading ${entity} JSON file:`, err);
+    return {};
+  }
+};
+
+/**
+ * Save data to JSON file
+ * @param {String} entity - Entity name
+ * @param {Object} data - Data to save to JSON file
+ */
+const saveData = async (entity, data) => {
+  try {
+    await fs.writeFile(`${DATA_FOLDER}/${entity}.json`, JSON.stringify(data, null, 4), 'utf8');
+  } catch (err) {
+    console.error(`Error saving ${entity} data to JSON file:`, err);
+  }
+};
+
+app.get('/:entity', async (req, res) => {
+  const { entity } = req.params;
+  const data = await loadData(entity);
+  res.json(data);
+});
+
+app.get('/:entity/:id', async (req, res) => {
+  const { entity, id } = req.params;
+  const data = await loadData(entity);
+  if (!data[id]) {
+    return res.status(404).send('Record not found');
+  }
+  res.json(data[id]);
+});
+
+app.post('/:entity', async (req, res) => {
+  const { entity } = req.params;
+  const id = Date.now();
+  const record = req.body;
+  const data = await loadData(entity);
+  data[id] = record;
+  await saveData(entity, data);
+  res.status(201).send('Record added');
+});
+
+app.put('/:entity/:id', async (req, res) => {
+  const { entity, id } = req.params;
+  const record = req.body;
+  const data = await loadData(entity);
+  if (!data[id]) {
+    return res.status(404).send('Record not found');
+  }
+  data[id] = record;
+  await saveData(entity, data);
+  res.send('Record updated');
+});
+
+app.delete('/:entity/:id', async (req, res) => {
+  const { entity, id } = req.params;
+  const data = await loadData(entity);
+  if (!data[id]) {
+    return res.status(404).send('Record not found');
+  }
+  delete data[id];
+  await saveData(entity, data);
+  res.send('Record deleted');
+});
+
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});
+
+como principal necesito este servicio el numero 1 
+
+Requerimientos
+Construir una aplicación Node.js con Express.js que implemente los siguientes servicios para Galapp
+agricultor.
+Servicio número 1
+Consultar las cuentas a las que un usuario tiene acceso y los formularios dentro de cada cuenta a los
+que puede acceder con el permiso de lectura.
+Se espera un objeto JSON con dos propiedades. Una propiedad debe llamarse accounts y debe
+tener una lista con los nombres de las cuentas a las que el usuario tiene acceso. La segunda
+propiedad se debe llamar forms y debe ser una lista de objetos, cada uno con el nombre de la cuenta
+y el nombre del formulario.
+Proponga un nombre para esta ruta según el modelo de datos existente. ¿Debería estar bajo la ruta
+users o accounts? Defina también cómo recibir el identificador del usuario para poder hacer la
+consulta
+
+
+dame 4 respuestas largas 
+
