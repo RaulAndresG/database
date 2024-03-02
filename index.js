@@ -1,14 +1,8 @@
 const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
-
-
-
-
-
-
 const app = express();
-const PORT = 20000;
+const PORT = 30000;
 
 app.use(express.json());
 
@@ -79,6 +73,7 @@ app.get('/users/:userId/access', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+//Finalizado 
        
 // **Servicio 2: Crear registro de cosecha**
 app.post('/accounts/:accountId/harvest', async (req, res) => {
@@ -86,18 +81,8 @@ app.post('/accounts/:accountId/harvest', async (req, res) => {
   const { fields } = req.body;
 
   try {
-    const formsData = await loadData('forms');
-    const harvestForm = formsData.form1;
-
-    if (!harvestForm) {
-      return res.status(500).json({ error: 'Harvest form not found' });
-    }
-
-    const allowedFields = harvestForm.fields.map(field => field.field);
-    const receivedFields = Object.keys(fields);
-    const invalidFields = receivedFields.filter(field => !allowedFields.includes(field));
-    if (invalidFields.length > 0) {
-      return res.status(400).json({ error: `Invalid field(s): ${invalidFields.join(', ')}` });
+    if (!fields) {
+      return res.status(400).json({ error: 'No fields provided in the request body' });
     }
 
     const timestamp = Date.now();
@@ -105,14 +90,10 @@ app.post('/accounts/:accountId/harvest', async (req, res) => {
 
     const harvestRecordsDir = path.join(__dirname, 'data', 'harvest_records');
 
-    await fs.access(harvestRecordsDir, fs.constants.F_OK)
-      .catch(() => fs.mkdir(harvestRecordsDir, { recursive: true }));
-
-
-
-      
+    await fs.mkdir(harvestRecordsDir, { recursive: true }).catch(() => {});
     const filePath = path.join(harvestRecordsDir, fileName);
-    await fs.writeFile(filePath, JSON.stringify({ accountId, fields }));
+
+    await fs.writeFile(filePath, JSON.stringify({ accountId, fields }, null, 2));
 
     res.status(201).json({ message: 'Harvest record created successfully' });
 
@@ -121,11 +102,8 @@ app.post('/accounts/:accountId/harvest', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-async function loadData(fileName) {
-  const filePath = path.join(__dirname, 'data', `${fileName}.json`);
-  const data = await fs.readFile(filePath, 'utf-8');
-  return JSON.parse(data);
-}
+
+//Finalizado 
 
 // **Servicio 3: **
 const dataDir = path.join(__dirname, 'data');
@@ -233,6 +211,7 @@ function calculateSummary(fermentationData) {
   return { avg_days: avgDays, avg_weight_loss: avgWeightLoss };
 }
 
+//intentato hacer funcionar 
 app.put('/accounts/:accountId/fermentation/:fermentationId', async (req, res) => {
   const { accountId, fermentationId } = req.params;
   const { fields } = req.body;
@@ -248,6 +227,7 @@ app.put('/accounts/:accountId/fermentation/:fermentationId', async (req, res) =>
     if (!account.fermentationRecords || !Object.keys(account.fermentationRecords).length) {
       return res.status(404).json({ error: 'Fermentation records not found' });
     }
+    // Aun no completado , fatan las validaciones 
 
     const fermentationRecord = account.fermentationRecords.find(record => record.id === fermentationId);
     if (!fermentationRecord) {
@@ -279,12 +259,36 @@ app.put('/accounts/:accountId/fermentation/:fermentationId', async (req, res) =>
   }
 });
 
+async function deleteRecord(recordType, recordId) {
+  try {
+    const recordsDir = path.join(__dirname, 'data', `${recordType}_records`);
+    const filePath = path.join(recordsDir, `${recordId}.json`);
+    console.log('Deleting file:', filePath);
+    await fs.unlink(filePath);
+    return { message: `${recordType} record deleted successfully` };
+  } catch (error) {
+    throw new Error(`Error deleting ${recordType} record: ${error.message}`);
+  }
+}
 
+app.delete('/:recordType/:recordId', async (req, res) => {
+  const { recordType, recordId } = req.params;
 
+  try {
+    let resultMessage;
 
+    if (recordType === 'fermentation' || recordType === 'harvest') {
+      resultMessage = await deleteRecord(recordType, recordId);
+    } else {
+      throw new Error('Invalid record type');
+    }
 
-
-
+    res.status(200).json(resultMessage);
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 
 
